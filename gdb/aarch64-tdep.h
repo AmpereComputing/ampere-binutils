@@ -87,6 +87,9 @@ struct gdbarch_tdep
   {
     return vq != 0;
   }
+
+  /* If this is ILP32 or LP64.  */
+  bool ilp32;
 };
 
 const target_desc *aarch64_read_description (uint64_t vq);

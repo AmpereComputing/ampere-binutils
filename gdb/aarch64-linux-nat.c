@@ -98,6 +98,10 @@ public:
 
 static aarch64_linux_nat_target the_aarch64_linux_nat_target;
 
+/* Check if we are on arm (as opposed to aarch64).  */
+#define IS_ARM32(gdbarch) \
+  (gdbarch_bfd_arch_info(gdbarch)->arch == bfd_arch_arm)
+
 /* Per-process data.  We don't bind this to a per-inferior registry
    because of targets like x86 GNU/Linux that need to keep track of
    processes that aren't bound to any inferior (e.g., fork children,
@@ -215,7 +219,7 @@ fetch_gregs_from_thread (struct regcache *regcache)
   tid = regcache->ptid ().lwp ();
 
   iovec.iov_base = &regs;
-  if (gdbarch_bfd_arch_info (gdbarch)->bits_per_word == 32)
+  if (IS_ARM32 (gdbarch))
     iovec.iov_len = 18 * 4;
   else
     iovec.iov_len = sizeof (regs);
@@ -224,7 +228,7 @@ fetch_gregs_from_thread (struct regcache *regcache)
   if (ret < 0)
     perror_with_name (_("Unable to fetch general registers."));
 
-  if (gdbarch_bfd_arch_info (gdbarch)->bits_per_word == 32)
+  if (IS_ARM32 (gdbarch))
     aarch32_gp_regcache_supply (regcache, (uint32_t *) regs, 1);
   else
     {
@@ -252,7 +256,7 @@ store_gregs_to_thread (const struct regcache *regcache)
   tid = regcache->ptid ().lwp ();
 
   iovec.iov_base = &regs;
-  if (gdbarch_bfd_arch_info (gdbarch)->bits_per_word == 32)
+  if (IS_ARM32 (gdbarch))
     iovec.iov_len = 18 * 4;
   else
     iovec.iov_len = sizeof (regs);
@@ -261,7 +265,7 @@ store_gregs_to_thread (const struct regcache *regcache)
   if (ret < 0)
     perror_with_name (_("Unable to fetch general registers."));
 
-  if (gdbarch_bfd_arch_info (gdbarch)->bits_per_word == 32)
+  if (IS_ARM32 (gdbarch))
     aarch32_gp_regcache_collect (regcache, (uint32_t *) regs, 1);
   else
     {
@@ -296,7 +300,7 @@ fetch_fpregs_from_thread (struct regcache *regcache)
 
   iovec.iov_base = &regs;
 
-  if (gdbarch_bfd_arch_info (gdbarch)->bits_per_word == 32)
+  if (IS_ARM32 (gdbarch))
     {
       iovec.iov_len = VFP_REGS_SIZE;
 
@@ -342,7 +346,7 @@ store_fpregs_to_thread (const struct regcache *regcache)
 
   iovec.iov_base = &regs;
 
-  if (gdbarch_bfd_arch_info (gdbarch)->bits_per_word == 32)
+  if (IS_ARM32 (gdbarch))
     {
       iovec.iov_len = VFP_REGS_SIZE;
 
@@ -373,7 +377,7 @@ store_fpregs_to_thread (const struct regcache *regcache)
 	regcache->raw_collect (AARCH64_FPCR_REGNUM, (char *) &regs.fpcr);
     }
 
-  if (gdbarch_bfd_arch_info (gdbarch)->bits_per_word == 32)
+  if (IS_ARM32 (gdbarch))
     {
       ret = ptrace (PTRACE_SETREGSET, tid, NT_ARM_VFP, &iovec);
       if (ret < 0)
@@ -554,10 +558,9 @@ ps_err_e
 ps_get_thread_area (struct ps_prochandle *ph,
 		    lwpid_t lwpid, int idx, void **base)
 {
-  int is_64bit_p
-    = (gdbarch_bfd_arch_info (target_gdbarch ())->bits_per_word == 64);
+  int is_aarch64_p = !IS_ARM32 (target_gdbarch ());
 
-  return aarch64_ps_get_thread_area (ph, lwpid, idx, base, is_64bit_p);
+  return aarch64_ps_get_thread_area (ph, lwpid, idx, base, is_aarch64_p);
 }
 
 
@@ -623,7 +626,7 @@ aarch64_linux_nat_target::low_siginfo_fixup (siginfo_t *native, gdb_byte *inf,
 
   /* Is the inferior 32-bit?  If so, then do fixup the siginfo
      object.  */
-  if (gdbarch_bfd_arch_info (gdbarch)->bits_per_word == 32)
+  if (IS_ARM32 (gdbarch))
     {
       if (direction == 0)
 	aarch64_compat_siginfo_from_siginfo ((struct compat_siginfo *) inf,
