@@ -73,6 +73,9 @@ struct gdbarch_tdep
 
   /* syscall record.  */
   int (*aarch64_syscall_record) (struct regcache *regcache, unsigned long svc_number);
+  /* If this is ILP32 or LP64.  */
+  bool ilp32;
+
 };
 
 const target_desc *aarch64_read_description ();
